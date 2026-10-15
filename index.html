@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#101114">
+  <title>Яндекс Навигатор</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101114;
+      --card: #1c2028;
+      --text: #f5f7fa;
+      --muted: #b7c0cc;
+      --yellow: #ffcc00;
+      --ink: #1a1400;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { margin: 0; min-height: 100%; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+
+    main {
+      max-width: 34rem;
+      margin: 0 auto;
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: max(1.25rem, env(safe-area-inset-top)) 1.1rem max(1.5rem, env(safe-area-inset-bottom));
+    }
+
+    h1 {
+      margin: 0 0 0.6rem;
+      font-size: 1.85rem;
+      line-height: 1.15;
+      font-weight: 700;
+    }
+
+    p { margin: 0 0 0.9rem; }
+
+    .muted { color: var(--muted); }
+
+    .coords {
+      margin: 0 0 1.25rem;
+      font-size: 1.05rem;
+      color: var(--muted);
+    }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-height: 4.75rem;
+      margin: 0.25rem 0 1rem;
+      padding: 1rem 1.1rem;
+      border-radius: 1rem;
+      background: var(--yellow);
+      color: var(--ink);
+      font-size: 1.35rem;
+      font-weight: 700;
+      line-height: 1.2;
+      text-align: center;
+      text-decoration: none;
+      touch-action: manipulation;
+    }
+
+    .btn:active { filter: brightness(0.92); }
+
+    .btn:focus-visible {
+      outline: 3px solid #fff;
+      outline-offset: 3px;
+    }
+
+    .secondary {
+      color: var(--yellow);
+      font-size: 1.08rem;
+      font-weight: 700;
+    }
+
+    .hint { margin-top: 1.1rem; font-size: 0.98rem; }
+
+    .example {
+      display: block;
+      margin: 0.4rem 0 1rem;
+      padding: 0.85rem 0.9rem;
+      border-radius: 0.75rem;
+      background: var(--card);
+      color: var(--text);
+      word-break: break-word;
+      text-decoration: none;
+    }
+
+    ul { margin: 0.2rem 0 1rem; padding-left: 1.2rem; }
+    li { margin: 0.25rem 0; }
+  </style>
+</head>
+<body>
+  <main id="app">
+    <noscript>
+      <h1>Нужен JavaScript</h1>
+      <p class="muted">Страница собирает ссылку на Яндекс Навигатор из параметров адреса. Включите JavaScript и откройте ссылку ещё раз.</p>
+    </noscript>
+  </main>
+  <script>
+    (function () {
+      var PACKAGE = "ru.yandex.yandexnavi";
+      var EXAMPLE = "https://us-kavalchuk.github.io/BydNavi/?lat=53.86&lon=27.45&name=Test";
+      var app = document.getElementById("app");
+      var params = new URLSearchParams(window.location.search);
+      var pageLeft = false;
+
+      window.addEventListener("pagehide", function () {
+        pageLeft = true;
+      });
+
+      function isAndroid() {
+        return /Android/i.test(navigator.userAgent || "");
+      }
+
+      function coord(raw, min, max) {
+        if (raw == null) return null;
+        var value = String(raw).trim().replace(",", ".");
+        if (!/^[+-]?\d+(\.\d+)?$/.test(value)) return null;
+        var number = Number(value);
+        if (number < min || number > max) return null;
+        return value;
+      }
+
+      function el(tag, className, text) {
+        var node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text != null) node.textContent = text;
+        return node;
+      }
+
+      function showHelp(intro) {
+        document.title = "Ссылка на Яндекс Навигатор";
+        app.textContent = "";
+        app.appendChild(el("h1", null, "Ссылка на маршрут"));
+        if (intro) app.appendChild(el("p", null, intro));
+        app.appendChild(el("p", "muted", "Telegram делает кликабельными только обычные https-ссылки. Эта страница сразу открывает маршрут в приложении Яндекс Навигатор."));
+        var list = document.createElement("ul");
+        list.appendChild(el("li", null, "lat и lon — широта и долгота точки назначения, оба обязательны."));
+        list.appendChild(el("li", null, "name — подпись места на этой странице."));
+        list.appendChild(el("li", null, "lat_from и lon_from — откуда ехать. Если их нет, маршрут начнётся от текущего места."));
+        app.appendChild(list);
+        app.appendChild(el("p", "muted", "Пример:"));
+        var link = el("a", "example", EXAMPLE);
+        link.href = EXAMPLE;
+        app.appendChild(link);
+      }
+
+      var lat = coord(params.get("lat"), -90, 90);
+      var lon = coord(params.get("lon"), -180, 180);
+      if (!lat || !lon) {
+        var missing = params.has("lat") || params.has("lon") || params.has("lat_from") || params.has("lon_from");
+        showHelp(missing ? "Координаты указаны неполно или неверно. Широта — от −90 до 90, долгота — от −180 до 180." : "");
+        return;
+      }
+
+      var latFrom = coord(params.get("lat_from"), -90, 90);
+      var lonFrom = coord(params.get("lon_from"), -180, 180);
+      var hasFrom = !!(latFrom && lonFrom);
+      var incompleteFrom = (params.get("lat_from") || params.get("lon_from")) && !hasFrom;
+      var name = (params.get("name") || "").trim();
+
+      var query = [];
+      if (hasFrom) query.push("lat_from=" + latFrom, "lon_from=" + lonFrom);
+      query.push("lat_to=" + lat, "lon_to=" + lon);
+      var routeQuery = query.join("&");
+
+      var scheme = "yandexnavi://build_route_on_map?" + routeQuery;
+      // Browser form of ACTION_VIEW + setPackage("ru.yandex.yandexnavi"):
+      // Chrome and Telegram's in-app browser dispatch this to Navigator,
+      // so Yandex Maps cannot take the route. A bare yandexnavi:// link
+      // cannot pin the package and is often ignored on auto-redirect.
+      var intent = "intent://build_route_on_map?" + routeQuery
+        + "#Intent;scheme=yandexnavi;package=" + PACKAGE + ";end";
+
+      var toPoint = lat + "," + lon;
+      var rtext = hasFrom ? (latFrom + "," + lonFrom + "~" + toPoint) : ("~" + toPoint);
+      var maps = "https://yandex.ru/maps/?rtext=" + encodeURIComponent(rtext) + "&rtt=auto";
+
+      var android = isAndroid();
+      var target = android ? intent : scheme;
+
+      document.title = name ? (name + " — Навигатор") : "Яндекс Навигатор";
+      app.textContent = "";
+      app.appendChild(el("h1", null, name || "Маршрут"));
+
+      var coords = el("p", "coords");
+      if (hasFrom) {
+        coords.appendChild(el("span", null, "Откуда: " + latFrom + ", " + lonFrom));
+        coords.appendChild(document.createElement("br"));
+        coords.appendChild(el("span", null, "Куда: " + lat + ", " + lon));
+      } else {
+        coords.textContent = lat + ", " + lon;
+      }
+      app.appendChild(coords);
+
+      if (incompleteFrom) {
+        app.appendChild(el("p", "muted", "Точка отправления указана не целиком, поэтому маршрут начнётся от текущего места."));
+      }
+
+      var button = el("a", "btn", "Открыть в Яндекс Навигаторе");
+      button.href = target;
+      app.appendChild(button);
+
+      var mapsLink = el("a", "secondary", "Открыть маршрут в Яндекс Картах");
+      mapsLink.href = maps;
+      app.appendChild(mapsLink);
+
+      app.appendChild(el("p", "hint muted", android
+        ? "Если Навигатор не открылся сам, нажмите жёлтую кнопку. Встроенный браузер Telegram иногда блокирует автоматический переход."
+        : "Если Навигатор не открылся сам, нажмите жёлтую кнопку."));
+
+      function openNavigator(fromTap) {
+        window.location.href = target;
+        if (!android || !fromTap) return;
+        window.setTimeout(function () {
+          if (pageLeft || document.visibilityState !== "visible") return;
+          window.location.href = scheme;
+        }, 1200);
+      }
+
+      if (android) {
+        button.addEventListener("click", function (event) {
+          event.preventDefault();
+          openNavigator(true);
+        });
+      }
+
+      openNavigator(false);
+    })();
+  </script>
+</body>
+</html>
