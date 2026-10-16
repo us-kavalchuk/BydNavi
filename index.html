@@ -15,6 +15,7 @@
       --muted: #b7c0cc;
       --yellow: #ffcc00;
       --ink: #1a1400;
+      --line: #2a303a;
     }
 
     * { box-sizing: border-box; }
@@ -46,49 +47,106 @@
       font-weight: 700;
     }
 
+    h2 {
+      margin: 1.35rem 0 0.55rem;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
     p { margin: 0 0 0.9rem; }
 
     .muted { color: var(--muted); }
 
     .coords {
-      margin: 0 0 1.25rem;
+      margin: 0 0 1rem;
       font-size: 1.05rem;
       color: var(--muted);
     }
 
-    .btn {
+    .actions {
       display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+    }
+
+    .btn,
+    .btn-alt,
+    .btn-copy {
+      display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       width: 100%;
-      min-height: 4.75rem;
-      margin: 0.25rem 0 1rem;
-      padding: 1rem 1.1rem;
-      border-radius: 1rem;
-      background: var(--yellow);
-      color: var(--ink);
-      font-size: 1.35rem;
+      min-height: 3.6rem;
+      padding: 0.85rem 1rem;
+      border: 0;
+      border-radius: 0.9rem;
+      font: inherit;
       font-weight: 700;
-      line-height: 1.2;
+      line-height: 1.25;
       text-align: center;
       text-decoration: none;
       touch-action: manipulation;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
     }
 
-    .btn:active { filter: brightness(0.92); }
+    .btn {
+      min-height: 4.6rem;
+      background: var(--yellow);
+      color: var(--ink);
+      font-size: 1.28rem;
+    }
 
-    .btn:focus-visible {
+    .btn-alt {
+      background: var(--card);
+      color: var(--text);
+      font-size: 1.05rem;
+      border: 1px solid var(--line);
+    }
+
+    .btn-copy {
+      background: transparent;
+      color: var(--yellow);
+      font-size: 1.05rem;
+      border: 1px dashed var(--line);
+    }
+
+    .btn-label {
+      display: block;
+    }
+
+    .btn-sub {
+      display: block;
+      margin-top: 0.2rem;
+      font-size: 0.82rem;
+      font-weight: 500;
+      opacity: 0.78;
+    }
+
+    .btn:active,
+    .btn-alt:active,
+    .btn-copy:active {
+      filter: brightness(0.92);
+    }
+
+    .btn:focus-visible,
+    .btn-alt:focus-visible,
+    .btn-copy:focus-visible {
       outline: 3px solid #fff;
       outline-offset: 3px;
     }
 
-    .secondary {
-      color: var(--yellow);
-      font-size: 1.08rem;
-      font-weight: 700;
+    .hint {
+      margin: 1.1rem 0 0;
+      font-size: 0.98rem;
     }
 
-    .hint { margin-top: 1.1rem; font-size: 0.98rem; }
+    .hint strong {
+      color: var(--text);
+      font-weight: 700;
+    }
 
     .example {
       display: block;
@@ -103,6 +161,13 @@
 
     ul { margin: 0.2rem 0 1rem; padding-left: 1.2rem; }
     li { margin: 0.25rem 0; }
+
+    .toast {
+      margin: 0.35rem 0 0;
+      min-height: 1.3em;
+      font-size: 0.95rem;
+      color: var(--yellow);
+    }
   </style>
 </head>
 <body>
@@ -114,15 +179,10 @@
   </main>
   <script>
     (function () {
-      var PACKAGE = "ru.yandex.yandexnavi";
+      var NAVI_PACKAGE = "ru.yandex.yandexnavi";
       var EXAMPLE = "https://us-kavalchuk.github.io/BydNavi/?lat=53.86&lon=27.45&name=Test";
       var app = document.getElementById("app");
       var params = new URLSearchParams(window.location.search);
-      var pageLeft = false;
-
-      window.addEventListener("pagehide", function () {
-        pageLeft = true;
-      });
 
       function isAndroid() {
         return /Android/i.test(navigator.userAgent || "");
@@ -142,6 +202,14 @@
         if (className) node.className = className;
         if (text != null) node.textContent = text;
         return node;
+      }
+
+      function linkButton(href, className, title, subtitle) {
+        var a = el("a", className);
+        a.href = href;
+        a.appendChild(el("span", "btn-label", title));
+        if (subtitle) a.appendChild(el("span", "btn-sub", subtitle));
+        return a;
       }
 
       function showHelp(intro) {
@@ -181,19 +249,26 @@
       var routeQuery = query.join("&");
 
       var scheme = "yandexnavi://build_route_on_map?" + routeQuery;
-      // Browser form of ACTION_VIEW + setPackage("ru.yandex.yandexnavi"):
-      // Chrome and Telegram's in-app browser dispatch this to Navigator,
-      // so Yandex Maps cannot take the route. A bare yandexnavi:// link
-      // cannot pin the package and is often ignored on auto-redirect.
+      // Browser form of ACTION_VIEW + setPackage("ru.yandex.yandexnavi").
       var intent = "intent://build_route_on_map?" + routeQuery
-        + "#Intent;scheme=yandexnavi;package=" + PACKAGE + ";end";
+        + "#Intent;scheme=yandexnavi;package=" + NAVI_PACKAGE + ";end";
 
       var toPoint = lat + "," + lon;
       var rtext = hasFrom ? (latFrom + "," + lonFrom + "~" + toPoint) : ("~" + toPoint);
-      var maps = "https://yandex.ru/maps/?rtext=" + encodeURIComponent(rtext) + "&rtt=auto";
+      var mapsWeb = "https://yandex.ru/maps/?rtext=" + encodeURIComponent(rtext) + "&rtt=auto";
+      var mapsApp = "yandexmaps://maps.yandex.ru/?rtext=" + encodeURIComponent(rtext) + "&rtt=auto";
+
+      // If the package cannot handle the intent, Chrome opens this URL.
+      var intentFallback = "intent://build_route_on_map?" + routeQuery
+        + "#Intent;scheme=yandexnavi;package=" + NAVI_PACKAGE
+        + ";S.browser_fallback_url=" + encodeURIComponent(mapsWeb)
+        + ";end";
 
       var android = isAndroid();
-      var target = android ? intent : scheme;
+      var autoTarget = android ? intent : scheme;
+      var copyText = hasFrom
+        ? (latFrom + ", " + lonFrom + " → " + lat + ", " + lon)
+        : (lat + ", " + lon);
 
       document.title = name ? (name + " — Навигатор") : "Яндекс Навигатор";
       app.textContent = "";
@@ -213,35 +288,114 @@
         app.appendChild(el("p", "muted", "Точка отправления указана не целиком, поэтому маршрут начнётся от текущего места."));
       }
 
-      var button = el("a", "btn", "Открыть в Яндекс Навигаторе");
-      button.href = target;
-      app.appendChild(button);
+      // Real <a href> links — do not intercept with preventDefault.
+      // Head-unit Telegram WebViews often ignore location.href redirects
+      // but still honor a direct user tap on an anchor.
+      var primary = el("div", "actions");
+      primary.appendChild(linkButton(
+        android ? intent : scheme,
+        "btn",
+        "Открыть в Яндекс Навигаторе",
+        android ? "intent:// · пакет ru.yandex.yandexnavi" : "yandexnavi://"
+      ));
+      app.appendChild(primary);
 
-      var mapsLink = el("a", "secondary", "Открыть маршрут в Яндекс Картах");
-      mapsLink.href = maps;
-      app.appendChild(mapsLink);
-
-      app.appendChild(el("p", "hint muted", android
-        ? "Если Навигатор не открылся сам, нажмите жёлтую кнопку. Встроенный браузер Telegram иногда блокирует автоматический переход."
-        : "Если Навигатор не открылся сам, нажмите жёлтую кнопку."));
-
-      function openNavigator(fromTap) {
-        window.location.href = target;
-        if (!android || !fromTap) return;
-        window.setTimeout(function () {
-          if (pageLeft || document.visibilityState !== "visible") return;
-          window.location.href = scheme;
-        }, 1200);
-      }
-
+      var actions = el("div", "actions");
       if (android) {
-        button.addEventListener("click", function (event) {
-          event.preventDefault();
-          openNavigator(true);
-        });
+        app.appendChild(el("h2", null, "Если кнопка не сработала (ГУ / Telegram)"));
+        actions.appendChild(linkButton(
+          scheme,
+          "btn-alt",
+          "Навигатор: прямая ссылка",
+          "yandexnavi://build_route_on_map"
+        ));
+        actions.appendChild(linkButton(
+          intent,
+          "btn-alt",
+          "Навигатор: Intent с пакетом",
+          "intent:// · ru.yandex.yandexnavi"
+        ));
+        actions.appendChild(linkButton(
+          intentFallback,
+          "btn-alt",
+          "Навигатор: Intent + запасной URL",
+          "если приложения нет — откроются Карты в браузере"
+        ));
+        actions.appendChild(linkButton(
+          mapsApp,
+          "btn-alt",
+          "Открыть в приложении Яндекс Карты",
+          "yandexmaps://maps.yandex.ru"
+        ));
       }
 
-      openNavigator(false);
+      actions.appendChild(linkButton(
+        mapsWeb,
+        "btn-alt",
+        "Маршрут в Яндекс Картах (браузер)",
+        "https://yandex.ru/maps"
+      ));
+
+      var copyBtn = el("button", "btn-copy", "Скопировать координаты");
+      copyBtn.type = "button";
+      actions.appendChild(copyBtn);
+
+      var toast = el("p", "toast", "");
+      actions.appendChild(toast);
+      app.appendChild(actions);
+
+      var hint = el("p", "hint muted");
+      hint.appendChild(document.createTextNode(
+        android
+          ? "На телефоне страница пытается открыть Навигатор сама. На ГУ Telegram часто блокирует intent:// и yandexnavi:// во встроенном браузере — тогда нажмите ⋮ / меню и выберите «"
+          : "Если Навигатор не открылся сам, нажмите жёлтую кнопку. Если схема заблокирована, откройте страницу во внешнем браузере: «"
+      ));
+      hint.appendChild(el("strong", null, "Открыть в браузере"));
+      hint.appendChild(document.createTextNode("», затем снова жёлтую кнопку."));
+      app.appendChild(hint);
+
+      function setToast(text) {
+        toast.textContent = text;
+      }
+
+      function copyCoords() {
+        function ok() { setToast("Скопировано: " + copyText); }
+        function fail() { setToast("Не удалось скопировать. Выделите координаты вручную."); }
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(copyText).then(ok, function () {
+            fallbackCopy(copyText) ? ok() : fail();
+          });
+          return;
+        }
+        fallbackCopy(copyText) ? ok() : fail();
+      }
+
+      function fallbackCopy(text) {
+        try {
+          var area = document.createElement("textarea");
+          area.value = text;
+          area.setAttribute("readonly", "");
+          area.style.position = "fixed";
+          area.style.left = "-9999px";
+          document.body.appendChild(area);
+          area.select();
+          area.setSelectionRange(0, text.length);
+          var done = document.execCommand("copy");
+          document.body.removeChild(area);
+          return done;
+        } catch (err) {
+          return false;
+        }
+      }
+
+      copyBtn.addEventListener("click", copyCoords);
+
+      // Auto-redirect for phones. Head-unit WebViews often ignore this;
+      // the labeled buttons above are the real path there.
+      try {
+        window.location.href = autoTarget;
+      } catch (err) {}
     })();
   </script>
 </body>

@@ -12,13 +12,22 @@ https://us-kavalchuk.github.io/BydNavi/?lat=53.86&lon=27.45&name=Test
 yandexnavi://build_route_on_map?lat_to=53.86&lon_to=27.45
 ```
 
-На Android переход и кнопка используют intent с пакетом `ru.yandex.yandexnavi`. Это браузерный аналог `ACTION_VIEW` + `setPackage`: Chrome и встроенный браузер Telegram отдают маршрут Навигатору, а не Яндекс Картам.
+На Android автопереход и главная кнопка используют intent с пакетом `ru.yandex.yandexnavi`. Это браузерный аналог `ACTION_VIEW` + `setPackage`: Chrome и Telegram на телефоне отдают маршрут Навигатору, а не Яндекс Картам.
 
 ```
 intent://build_route_on_map?lat_to=53.86&lon_to=27.45#Intent;scheme=yandexnavi;package=ru.yandex.yandexnavi;end
 ```
 
-Если автоматический переход заблокирован, на странице есть кнопка «Открыть в Яндекс Навигаторе». На Android повторное нажатие, если intent не увёл со страницы, пробует прямую схему `yandexnavi://` — так ведут себя некоторые WebView на головных устройствах. Ниже есть запасная ссылка на маршрут в Яндекс Картах.
+На головном устройстве (ГУ BYD) встроенный браузер Telegram часто блокирует и `intent://`, и `yandexnavi://`. Поэтому на Android страница показывает несколько настоящих ссылок-кнопок:
+
+- Навигатор через `intent://` с пакетом
+- Навигатор через прямую схему `yandexnavi://`
+- Intent с `S.browser_fallback_url` (если приложение не открылось — маршрут в Картах в браузере)
+- Приложение Яндекс Карты: `yandexmaps://maps.yandex.ru/?rtext=...&rtt=auto`
+- Маршрут в Яндекс Картах по https
+- Кнопка «Скопировать координаты»
+
+Если ничего не открывается: в Telegram нажмите ⋮ / меню → **Открыть в браузере**, затем снова жёлтую кнопку.
 
 ## Параметры
 
