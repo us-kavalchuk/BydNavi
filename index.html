@@ -113,9 +113,7 @@
       border: 1px dashed var(--line);
     }
 
-    .btn-label {
-      display: block;
-    }
+    .btn-label { display: block; }
 
     .btn-sub {
       display: block;
@@ -143,11 +141,6 @@
       font-size: 0.98rem;
     }
 
-    .hint strong {
-      color: var(--text);
-      font-weight: 700;
-    }
-
     .example {
       display: block;
       margin: 0.4rem 0 1rem;
@@ -168,13 +161,18 @@
       font-size: 0.95rem;
       color: var(--yellow);
     }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.92em;
+    }
   </style>
 </head>
 <body>
   <main id="app">
     <noscript>
       <h1>Нужен JavaScript</h1>
-      <p class="muted">Страница собирает ссылку на Яндекс Навигатор из параметров адреса. Включите JavaScript и откройте ссылку ещё раз.</p>
+      <p class="muted">Страница собирает ссылку на навигатор из параметров адреса. Включите JavaScript и откройте ссылку ещё раз.</p>
     </noscript>
   </main>
   <script>
@@ -213,15 +211,16 @@
       }
 
       function showHelp(intro) {
-        document.title = "Ссылка на Яндекс Навигатор";
+        document.title = "Ссылка на навигатор";
         app.textContent = "";
         app.appendChild(el("h1", null, "Ссылка на маршрут"));
         if (intro) app.appendChild(el("p", null, intro));
-        app.appendChild(el("p", "muted", "Telegram делает кликабельными только обычные https-ссылки. Эта страница сразу открывает маршрут в приложении Яндекс Навигатор."));
+        app.appendChild(el("p", "muted", "Telegram делает кликабельными только обычные https-ссылки. Эта страница открывает маршрут в Яндекс Навигаторе или в другом навигаторе по выбору."));
         var list = document.createElement("ul");
         list.appendChild(el("li", null, "lat и lon — широта и долгота точки назначения, оба обязательны."));
         list.appendChild(el("li", null, "name — подпись места на этой странице."));
         list.appendChild(el("li", null, "lat_from и lon_from — откуда ехать. Если их нет, маршрут начнётся от текущего места."));
+        list.appendChild(el("li", null, "app — какой навигатор открыть сразу: yandex (по умолчанию), google, waze, 2gis, apple, here, sygic, organic, osmand, geo."));
         app.appendChild(list);
         app.appendChild(el("p", "muted", "Пример:"));
         var link = el("a", "example", EXAMPLE);
@@ -242,6 +241,7 @@
       var hasFrom = !!(latFrom && lonFrom);
       var incompleteFrom = (params.get("lat_from") || params.get("lon_from")) && !hasFrom;
       var name = (params.get("name") || "").trim();
+      var appParam = (params.get("app") || "yandex").trim().toLowerCase();
 
       var query = [];
       if (hasFrom) query.push("lat_from=" + latFrom, "lon_from=" + lonFrom);
@@ -256,16 +256,100 @@
       var toPoint = lat + "," + lon;
       var rtext = hasFrom ? (latFrom + "," + lonFrom + "~" + toPoint) : ("~" + toPoint);
       var mapsWeb = "https://yandex.ru/maps/?rtext=" + encodeURIComponent(rtext) + "&rtt=auto";
-      var mapsApp = "yandexmaps://maps.yandex.ru/?rtext=" + encodeURIComponent(rtext) + "&rtt=auto";
-
-      // If the package cannot handle the intent, Chrome opens this URL.
-      var intentFallback = "intent://build_route_on_map?" + routeQuery
-        + "#Intent;scheme=yandexnavi;package=" + NAVI_PACKAGE
-        + ";S.browser_fallback_url=" + encodeURIComponent(mapsWeb)
-        + ";end";
 
       var android = isAndroid();
-      var autoTarget = android ? intent : scheme;
+      var yandexTarget = android ? intent : scheme;
+
+      // Destination-only / A→B builders for other apps (official docs).
+      // 2GIS: lon,lat order. Prefer https (opens app or web).
+      var dgisPath = hasFrom
+        ? ("/routeSearch/rsType/car/from/" + lonFrom + "," + latFrom + "/to/" + lon + "," + lat)
+        : ("/routeSearch/rsType/car/to/" + lon + "," + lat);
+      var dgisApp = "dgis://2gis.ru" + dgisPath;
+      var dgisWeb = "https://2gis.ru" + dgisPath;
+
+      var google = "https://www.google.com/maps/dir/?api=1&destination="
+        + encodeURIComponent(toPoint)
+        + (hasFrom ? ("&origin=" + encodeURIComponent(latFrom + "," + lonFrom)) : "")
+        + "&travelmode=driving";
+
+      var waze = "https://waze.com/ul?ll=" + encodeURIComponent(toPoint) + "&navigate=yes";
+
+      var apple = "https://maps.apple.com/?daddr=" + encodeURIComponent(toPoint)
+        + (hasFrom ? ("&saddr=" + encodeURIComponent(latFrom + "," + lonFrom)) : "")
+        + "&dirflg=d";
+
+      var here = "https://share.here.com/r/"
+        + (hasFrom ? (latFrom + "," + lonFrom) : "mylocation")
+        + "/" + toPoint
+        + (name ? ("," + encodeURIComponent(name)) : "")
+        + "?m=d";
+
+      // Sygic consumer universal link (legacy com.sygic.aura:// no longer builds routes).
+      var sygic = "https://go.sygic.com/directions?to=" + encodeURIComponent(toPoint)
+        + (hasFrom ? ("&from=" + encodeURIComponent(latFrom + "," + lonFrom)) : "");
+
+      var organic = "om://v2/nav?origin="
+        + (hasFrom ? encodeURIComponent(latFrom + "," + lonFrom) : "currentLocation")
+        + "&destination=" + encodeURIComponent(toPoint)
+        + (name ? ("&destination_name=" + encodeURIComponent(name)) : "")
+        + "&mode=drive";
+
+      var osmand = hasFrom
+        ? ("https://osmand.net/map/?start=" + encodeURIComponent(latFrom + "," + lonFrom)
+          + "&finish=" + encodeURIComponent(toPoint) + "&type=osmand&profile=car#"
+          + "14/" + lat + "/" + lon)
+        : ("https://osmand.net/map/?pin=" + encodeURIComponent(toPoint)
+          + "#14/" + lat + "/" + lon);
+
+      var geo = "geo:" + toPoint
+        + (name ? ("(" + encodeURIComponent(name) + ")") : "");
+
+      var otherApps = [
+        { id: "2gis", href: dgisWeb, title: "2ГИС · 2GIS", sub: "https://2gis.ru/routeSearch · app: 2gis" },
+        { id: "google", href: google, title: "Google Maps", sub: "maps/dir · app: google" },
+        { id: "waze", href: waze, title: "Waze", sub: "waze.com/ul · app: waze" },
+        { id: "apple", href: apple, title: "Apple Maps", sub: "maps.apple.com · app: apple" },
+        { id: "here", href: here, title: "HERE WeGo", sub: "share.here.com · app: here" },
+        { id: "sygic", href: sygic, title: "Sygic", sub: "go.sygic.com · app: sygic" },
+        { id: "organic", href: organic, title: "Organic Maps", sub: "om://v2/nav · app: organic" },
+        { id: "osmand", href: osmand, title: "OsmAnd", sub: "osmand.net/map · app: osmand" },
+        { id: "geo", href: geo, title: "Выбрать приложение · geo:", sub: "Android · app: geo" }
+      ];
+
+      var aliases = {
+        yandex: "yandex",
+        navi: "yandex",
+        yandexnavi: "yandex",
+        "2gis": "2gis",
+        dgis: "2gis",
+        google: "google",
+        gmaps: "google",
+        waze: "waze",
+        apple: "apple",
+        applemaps: "apple",
+        here: "here",
+        wego: "here",
+        sygic: "sygic",
+        organic: "organic",
+        organicmaps: "organic",
+        om: "organic",
+        osmand: "osmand",
+        geo: "geo"
+      };
+      var selected = aliases[appParam] || "yandex";
+
+      var autoTarget = yandexTarget;
+      if (selected === "2gis") autoTarget = dgisWeb;
+      else if (selected === "google") autoTarget = google;
+      else if (selected === "waze") autoTarget = waze;
+      else if (selected === "apple") autoTarget = apple;
+      else if (selected === "here") autoTarget = here;
+      else if (selected === "sygic") autoTarget = sygic;
+      else if (selected === "organic") autoTarget = organic;
+      else if (selected === "osmand") autoTarget = osmand;
+      else if (selected === "geo") autoTarget = geo;
+
       var copyText = hasFrom
         ? (latFrom + ", " + lonFrom + " → " + lat + ", " + lon)
         : (lat + ", " + lon);
@@ -288,48 +372,24 @@
         app.appendChild(el("p", "muted", "Точка отправления указана не целиком, поэтому маршрут начнётся от текущего места."));
       }
 
-      // Real <a href> links — do not intercept with preventDefault.
-      // Head-unit Telegram WebViews often ignore location.href redirects
-      // but still honor a direct user tap on an anchor.
+      if (!aliases[appParam]) {
+        app.appendChild(el("p", "muted", "Неизвестный app=" + appParam + " — открываем Яндекс Навигатор."));
+      } else if (selected !== "yandex") {
+        app.appendChild(el("p", "muted", "Автопереход: " + selected + ". Жёлтая кнопка по-прежнему открывает Яндекс Навигатор."));
+      }
+
+      // Keep Yandex primary exactly as before: real <a>, Android intent / else scheme.
       var primary = el("div", "actions");
       primary.appendChild(linkButton(
-        android ? intent : scheme,
+        yandexTarget,
         "btn",
         "Открыть в Яндекс Навигаторе",
         android ? "intent:// · пакет ru.yandex.yandexnavi" : "yandexnavi://"
       ));
       app.appendChild(primary);
 
-      var actions = el("div", "actions");
-      if (android) {
-        app.appendChild(el("h2", null, "Если кнопка не сработала (ГУ / Telegram)"));
-        actions.appendChild(linkButton(
-          scheme,
-          "btn-alt",
-          "Навигатор: прямая ссылка",
-          "yandexnavi://build_route_on_map"
-        ));
-        actions.appendChild(linkButton(
-          intent,
-          "btn-alt",
-          "Навигатор: Intent с пакетом",
-          "intent:// · ru.yandex.yandexnavi"
-        ));
-        actions.appendChild(linkButton(
-          intentFallback,
-          "btn-alt",
-          "Навигатор: Intent + запасной URL",
-          "если приложения нет — откроются Карты в браузере"
-        ));
-        actions.appendChild(linkButton(
-          mapsApp,
-          "btn-alt",
-          "Открыть в приложении Яндекс Карты",
-          "yandexmaps://maps.yandex.ru"
-        ));
-      }
-
-      actions.appendChild(linkButton(
+      var yandexExtras = el("div", "actions");
+      yandexExtras.appendChild(linkButton(
         mapsWeb,
         "btn-alt",
         "Маршрут в Яндекс Картах (браузер)",
@@ -338,21 +398,34 @@
 
       var copyBtn = el("button", "btn-copy", "Скопировать координаты");
       copyBtn.type = "button";
-      actions.appendChild(copyBtn);
+      yandexExtras.appendChild(copyBtn);
 
       var toast = el("p", "toast", "");
-      actions.appendChild(toast);
-      app.appendChild(actions);
+      yandexExtras.appendChild(toast);
+      app.appendChild(yandexExtras);
 
-      var hint = el("p", "hint muted");
-      hint.appendChild(document.createTextNode(
-        android
-          ? "На телефоне страница пытается открыть Навигатор сама. На ГУ Telegram часто блокирует intent:// и yandexnavi:// во встроенном браузере — тогда нажмите ⋮ / меню и выберите «"
-          : "Если Навигатор не открылся сам, нажмите жёлтую кнопку. Если схема заблокирована, откройте страницу во внешнем браузере: «"
+      app.appendChild(el("h2", null, "Другие навигаторы · Other navigators"));
+      var others = el("div", "actions");
+      for (var i = 0; i < otherApps.length; i++) {
+        var item = otherApps[i];
+        others.appendChild(linkButton(item.href, "btn-alt", item.title, item.sub));
+      }
+      // Extra: direct dgis:// for those who prefer the app scheme over https.
+      others.appendChild(linkButton(
+        dgisApp,
+        "btn-alt",
+        "2ГИС · dgis://",
+        "dgis://2gis.ru/routeSearch · если https не открыл приложение"
       ));
-      hint.appendChild(el("strong", null, "Открыть в браузере"));
-      hint.appendChild(document.createTextNode("», затем снова жёлтую кнопку."));
-      app.appendChild(hint);
+      app.appendChild(others);
+
+      app.appendChild(el(
+        "p",
+        "hint muted",
+        selected === "yandex"
+          ? "Если Навигатор не открылся сам, нажмите жёлтую кнопку."
+          : "Ссылка с app=" + selected + " сразу открывает выбранный навигатор. Жёлтая кнопка всегда ведёт в Яндекс Навигатор."
+      ));
 
       function setToast(text) {
         toast.textContent = text;
@@ -391,8 +464,6 @@
 
       copyBtn.addEventListener("click", copyCoords);
 
-      // Auto-redirect for phones. Head-unit WebViews often ignore this;
-      // the labeled buttons above are the real path there.
       try {
         window.location.href = autoTarget;
       } catch (err) {}
