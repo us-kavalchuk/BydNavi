@@ -21,11 +21,20 @@ intent://build_route_on_map?lat_to=53.86&lon_to=27.45#Intent;scheme=yandexnavi;p
 На странице:
 
 1. Жёлтая кнопка — **Яндекс Навигатор** (как автопереход).
-2. Вторая кнопка — **Waze** (`https://waze.com/ul?ll=…&navigate=yes`).
+2. Вторая кнопка — **Waze**.
 3. «Скопировать координаты».
 4. Блок **Другие навигаторы**: 2GIS, Google Maps, Apple Maps, HERE WeGo, Sygic, Organic Maps, OsmAnd, `geo:` (+ запасной `dgis://`). Waze в этом списке не дублируется.
 
 Яндекс Карты с страницы убраны.
+
+### Android / iOS: открытие приложения, не сайта
+
+Обычный `https://waze.com/ul…` из Telegram/Chrome часто остаётся в браузере. Поэтому:
+
+- **Android Waze** (кнопка и `?app=waze`):  
+  `intent://ul?ll=LAT,LON&navigate=yes#Intent;scheme=waze;package=com.waze;S.browser_fallback_url=<https waze.com/ul…>;end`
+- **iOS Waze**: `waze://?ll=LAT,LON&navigate=yes` (иначе https).
+- То же для других приложений с известным пакетом: Google Maps (`google.navigation` / `com.google.android.apps.maps`), 2GIS (`dgis` / `ru.dublgis.dgismobile`), HERE (`here.directions` / `com.here.app.maps`), Sygic (`com.sygic.aura`), Organic Maps (`om` / `app.organicmaps`), OsmAnd (`https` + `net.osmand`).
 
 ## Язык интерфейса
 
@@ -62,7 +71,10 @@ https://us-kavalchuk.github.io/BydNavi/?lat=53.86&lon=27.45&name=Test&app=waze
 | Приложение | URL |
 | --- | --- |
 | Яндекс Навигатор | `yandexnavi://build_route_on_map?lat_to=53.86&lon_to=27.45` |
-| Waze | `https://waze.com/ul?ll=53.86,27.45&navigate=yes` |
+| Waze (https / fallback) | `https://waze.com/ul?ll=53.86,27.45&navigate=yes` |
+| Waze (Android intent) | `intent://ul?ll=53.86,27.45&navigate=yes#Intent;scheme=waze;package=com.waze;S.browser_fallback_url=…;end` |
+| Waze (iOS) | `waze://?ll=53.86,27.45&navigate=yes` |
+| Google Maps (Android intent) | `intent://q=53.86,27.45&mode=d#Intent;scheme=google.navigation;package=com.google.android.apps.maps;S.browser_fallback_url=…;end` |
 | 2GIS (https) | `https://2gis.ru/routeSearch/rsType/car/to/27.45,53.86` |
 | 2GIS (`dgis://`) | `dgis://2gis.ru/routeSearch/rsType/car/to/27.45,53.86` |
 | Google Maps | `https://www.google.com/maps/dir/?api=1&destination=53.86,27.45&travelmode=driving` |

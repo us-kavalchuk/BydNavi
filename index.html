@@ -636,6 +636,25 @@
         return /Android/i.test(navigator.userAgent || "");
       }
 
+      function isIos() {
+        return /iPhone|iPad|iPod/i.test(navigator.userAgent || "");
+      }
+
+      // Chrome / Telegram in-app browser form of ACTION_VIEW + setPackage.
+      function androidIntent(pathAndQuery, scheme, packageName, fallbackUrl) {
+        return "intent://" + pathAndQuery
+          + "#Intent;scheme=" + scheme
+          + ";package=" + packageName
+          + ";S.browser_fallback_url=" + encodeURIComponent(fallbackUrl)
+          + ";end";
+      }
+
+      function openUrl(androidUrl, iosUrl, webUrl) {
+        if (isAndroid()) return androidUrl || webUrl;
+        if (isIos()) return iosUrl || webUrl;
+        return webUrl;
+      }
+
       function coord(raw, min, max) {
         if (raw == null) return null;
         var value = String(raw).trim().replace(",", ".");
@@ -706,60 +725,106 @@
 
       var toPoint = lat + "," + lon;
       var android = isAndroid();
+      var ios = isIos();
       var yandexTarget = android ? intent : scheme;
 
       // Other apps (official docs). 2GIS uses lon,lat.
+      // https alone often stays in Telegram/Chrome; Android uses intent:// + package.
       var dgisPath = hasFrom
         ? ("/routeSearch/rsType/car/from/" + lonFrom + "," + latFrom + "/to/" + lon + "," + lat)
         : ("/routeSearch/rsType/car/to/" + lon + "," + lat);
-      var dgisApp = "dgis://2gis.ru" + dgisPath;
+      var dgisScheme = "dgis://2gis.ru" + dgisPath;
       var dgisWeb = "https://2gis.ru" + dgisPath;
+      var dgis = openUrl(
+        androidIntent("2gis.ru" + dgisPath, "dgis", "ru.dublgis.dgismobile", dgisWeb),
+        dgisScheme,
+        dgisWeb
+      );
 
-      var google = "https://www.google.com/maps/dir/?api=1&destination="
+      var googleWeb = "https://www.google.com/maps/dir/?api=1&destination="
         + encodeURIComponent(toPoint)
         + (hasFrom ? ("&origin=" + encodeURIComponent(latFrom + "," + lonFrom)) : "")
         + "&travelmode=driving";
+      var google = openUrl(
+        androidIntent("q=" + toPoint + "&mode=d", "google.navigation", "com.google.android.apps.maps", googleWeb),
+        googleWeb,
+        googleWeb
+      );
 
-      var waze = "https://waze.com/ul?ll=" + encodeURIComponent(toPoint) + "&navigate=yes";
+      var wazeWeb = "https://waze.com/ul?ll=" + encodeURIComponent(toPoint) + "&navigate=yes";
+      var wazeIos = "waze://?ll=" + toPoint + "&navigate=yes";
+      var waze = openUrl(
+        androidIntent("ul?ll=" + toPoint + "&navigate=yes", "waze", "com.waze", wazeWeb),
+        wazeIos,
+        wazeWeb
+      );
 
       var apple = "https://maps.apple.com/?daddr=" + encodeURIComponent(toPoint)
         + (hasFrom ? ("&saddr=" + encodeURIComponent(latFrom + "," + lonFrom)) : "")
         + "&dirflg=d";
 
-      var here = "https://share.here.com/r/"
+      var hereWeb = "https://share.here.com/r/"
         + (hasFrom ? (latFrom + "," + lonFrom) : "mylocation")
         + "/" + toPoint
         + (name ? ("," + encodeURIComponent(name)) : "")
         + "?m=d";
+      var here = openUrl(
+        androidIntent("v1.0/mylocation/" + toPoint + "?m=d", "here.directions", "com.here.app.maps", hereWeb),
+        hereWeb,
+        hereWeb
+      );
 
-      var sygic = "https://go.sygic.com/directions?to=" + encodeURIComponent(toPoint)
+      var sygicWeb = "https://go.sygic.com/directions?to=" + encodeURIComponent(toPoint)
         + (hasFrom ? ("&from=" + encodeURIComponent(latFrom + "," + lonFrom)) : "");
+      // Sygic custom URL: com.sygic.aura://coordinate|lon|lat|drive (docs).
+      var sygicPath = "coordinate|" + lon + "|" + lat + "|drive";
+      var sygic = openUrl(
+        androidIntent(sygicPath, "com.sygic.aura", "com.sygic.aura", sygicWeb),
+        "com.sygic.aura://" + sygicPath,
+        sygicWeb
+      );
 
-      var organic = "om://v2/nav?origin="
+      var organicQuery = "v2/nav?origin="
         + (hasFrom ? encodeURIComponent(latFrom + "," + lonFrom) : "currentLocation")
         + "&destination=" + encodeURIComponent(toPoint)
         + (name ? ("&destination_name=" + encodeURIComponent(name)) : "")
         + "&mode=drive";
+      var organicScheme = "om://" + organicQuery;
+      var organicWeb = "https://omaps.app/" + organicQuery;
+      var organic = openUrl(
+        androidIntent(organicQuery, "om", "app.organicmaps", organicWeb),
+        organicScheme,
+        organicScheme
+      );
 
-      var osmand = hasFrom
+      var osmandWeb = hasFrom
         ? ("https://osmand.net/map/?start=" + encodeURIComponent(latFrom + "," + lonFrom)
           + "&finish=" + encodeURIComponent(toPoint) + "&type=osmand&profile=car#"
           + "14/" + lat + "/" + lon)
         : ("https://osmand.net/map/?pin=" + encodeURIComponent(toPoint)
           + "#14/" + lat + "/" + lon);
+      var osmandPath = hasFrom
+        ? ("osmand.net/map/?start=" + encodeURIComponent(latFrom + "," + lonFrom)
+          + "&finish=" + encodeURIComponent(toPoint) + "&type=osmand&profile=car")
+        : ("osmand.net/map/?pin=" + encodeURIComponent(toPoint));
+      var osmand = openUrl(
+        androidIntent(osmandPath, "https", "net.osmand", osmandWeb),
+        osmandWeb,
+        osmandWeb
+      );
 
       var geo = "geo:" + toPoint
         + (name ? ("(" + encodeURIComponent(name) + ")") : "");
 
       // Waze is the second primary button — not repeated here.
       var otherApps = [
-        { href: dgisWeb, title: "2GIS", sub: "2gis.ru/routeSearch · app: 2gis" },
-        { href: google, title: "Google Maps", sub: "maps/dir · app: google" },
+        { href: dgis, title: "2GIS", sub: android ? "intent:// · ru.dublgis.dgismobile" : "2gis.ru/routeSearch · app: 2gis" },
+        { href: google, title: "Google Maps", sub: android ? "intent:// · com.google.android.apps.maps" : "maps/dir · app: google" },
         { href: apple, title: "Apple Maps", sub: "maps.apple.com · app: apple" },
-        { href: here, title: "HERE WeGo", sub: "share.here.com · app: here" },
-        { href: sygic, title: "Sygic", sub: "go.sygic.com · app: sygic" },
-        { href: organic, title: "Organic Maps", sub: "om://v2/nav · app: organic" },
-        { href: osmand, title: "OsmAnd", sub: "osmand.net/map · app: osmand" },
+        { href: here, title: "HERE WeGo", sub: android ? "intent:// · com.here.app.maps" : "share.here.com · app: here" },
+        { href: sygic, title: "Sygic", sub: android ? "intent:// · com.sygic.aura" : "go.sygic.com · app: sygic" },
+        { href: organic, title: "Organic Maps", sub: android ? "intent:// · app.organicmaps" : "om://v2/nav · app: organic" },
+        { href: osmand, title: "OsmAnd", sub: android ? "intent:// · net.osmand" : "osmand.net/map · app: osmand" },
         { href: geo, title: msg("chooseApp"), sub: "Android · app: geo" }
       ];
 
@@ -786,7 +851,7 @@
       var selected = aliases[appParam] || "yandex";
 
       var autoTarget = yandexTarget;
-      if (selected === "2gis") autoTarget = dgisWeb;
+      if (selected === "2gis") autoTarget = dgis;
       else if (selected === "google") autoTarget = google;
       else if (selected === "waze") autoTarget = waze;
       else if (selected === "apple") autoTarget = apple;
@@ -839,7 +904,7 @@
         waze,
         "btn-alt",
         msg("openWaze"),
-        "waze.com/ul · app: waze"
+        android ? "intent:// · com.waze" : (ios ? "waze:// · app: waze" : "waze.com/ul · app: waze")
       ));
 
       var copyBtn = el("button", "btn-copy", msg("copy"));
@@ -855,7 +920,7 @@
       for (var i = 0; i < otherApps.length; i++) {
         others.appendChild(linkButton(otherApps[i].href, "btn-alt", otherApps[i].title, otherApps[i].sub));
       }
-      others.appendChild(linkButton(dgisApp, "btn-alt", msg("dgisApp"), msg("dgisAppSub")));
+      others.appendChild(linkButton(dgisScheme, "btn-alt", msg("dgisApp"), msg("dgisAppSub")));
       app.appendChild(others);
 
       app.appendChild(el(
