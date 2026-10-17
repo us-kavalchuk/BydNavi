@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#101114">
-  <title>Яндекс Навигатор</title>
+  <title>Navigator</title>
   <style>
     :root {
       color-scheme: dark;
@@ -161,18 +161,13 @@
       font-size: 0.95rem;
       color: var(--yellow);
     }
-
-    code {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 0.92em;
-    }
   </style>
 </head>
 <body>
   <main id="app">
     <noscript>
-      <h1>Нужен JavaScript</h1>
-      <p class="muted">Страница собирает ссылку на навигатор из параметров адреса. Включите JavaScript и откройте ссылку ещё раз.</p>
+      <h1>JavaScript required</h1>
+      <p class="muted">Enable JavaScript and open the link again.</p>
     </noscript>
   </main>
   <script>
@@ -181,6 +176,461 @@
       var EXAMPLE = "https://us-kavalchuk.github.io/BydNavi/?lat=53.86&lon=27.45&name=Test";
       var app = document.getElementById("app");
       var params = new URLSearchParams(window.location.search);
+
+      // Compact UI strings. be → ru. Unknown → en.
+      var I18N = {
+        en: {
+          title: "Navigator",
+          titleNamed: "{name} — Navigator",
+          helpTitle: "Route link",
+          helpTelegram: "Telegram only makes https links clickable. This page opens a route in Yandex Navigator or another app you pick.",
+          helpLatLon: "lat and lon — destination latitude and longitude (required).",
+          helpName: "name — place label on this page.",
+          helpFrom: "lat_from and lon_from — start point. If omitted, the route starts from your current location.",
+          helpApp: "app — navigator to open first: yandex (default), waze, google, 2gis, apple, here, sygic, organic, osmand, geo.",
+          helpLang: "lang — UI language override (en, ru, de, …).",
+          helpExample: "Example:",
+          badCoords: "Coordinates are incomplete or invalid. Latitude −90…90, longitude −180…180.",
+          route: "Route",
+          from: "From: {a}",
+          to: "To: {a}",
+          incompleteFrom: "Start point is incomplete, so the route will start from your current location.",
+          unknownApp: "Unknown app={app} — opening Yandex Navigator.",
+          autoApp: "Auto-open: {app}. The yellow button still opens Yandex Navigator.",
+          openYandex: "Open in Yandex Navigator",
+          openWaze: "Open in Waze",
+          copy: "Copy coordinates",
+          copied: "Copied: {text}",
+          copyFail: "Could not copy. Select the coordinates manually.",
+          others: "Other navigators",
+          chooseApp: "Choose app · geo:",
+          dgisApp: "2GIS · dgis://",
+          dgisAppSub: "dgis://2gis.ru/routeSearch · if https did not open the app",
+          hintYandex: "If Navigator did not open by itself, tap the yellow button.",
+          hintApp: "This link uses app={app}. The yellow button always opens Yandex Navigator."
+        },
+        ru: {
+          title: "Яндекс Навигатор",
+          titleNamed: "{name} — Навигатор",
+          helpTitle: "Ссылка на маршрут",
+          helpTelegram: "Telegram делает кликабельными только обычные https-ссылки. Эта страница открывает маршрут в Яндекс Навигаторе или в другом навигаторе по выбору.",
+          helpLatLon: "lat и lon — широта и долгота точки назначения, оба обязательны.",
+          helpName: "name — подпись места на этой странице.",
+          helpFrom: "lat_from и lon_from — откуда ехать. Если их нет, маршрут начнётся от текущего места.",
+          helpApp: "app — какой навигатор открыть сразу: yandex (по умолчанию), waze, google, 2gis, apple, here, sygic, organic, osmand, geo.",
+          helpLang: "lang — язык интерфейса (en, ru, de, …).",
+          helpExample: "Пример:",
+          badCoords: "Координаты указаны неполно или неверно. Широта — от −90 до 90, долгота — от −180 до 180.",
+          route: "Маршрут",
+          from: "Откуда: {a}",
+          to: "Куда: {a}",
+          incompleteFrom: "Точка отправления указана не целиком, поэтому маршрут начнётся от текущего места.",
+          unknownApp: "Неизвестный app={app} — открываем Яндекс Навигатор.",
+          autoApp: "Автопереход: {app}. Жёлтая кнопка по-прежнему открывает Яндекс Навигатор.",
+          openYandex: "Открыть в Яндекс Навигаторе",
+          openWaze: "Открыть в Waze",
+          copy: "Скопировать координаты",
+          copied: "Скопировано: {text}",
+          copyFail: "Не удалось скопировать. Выделите координаты вручную.",
+          others: "Другие навигаторы",
+          chooseApp: "Выбрать приложение · geo:",
+          dgisApp: "2ГИС · dgis://",
+          dgisAppSub: "dgis://2gis.ru/routeSearch · если https не открыл приложение",
+          hintYandex: "Если Навигатор не открылся сам, нажмите жёлтую кнопку.",
+          hintApp: "Ссылка с app={app} сразу открывает выбранный навигатор. Жёлтая кнопка всегда ведёт в Яндекс Навигатор."
+        },
+        uk: {
+          title: "Яндекс Навігатор",
+          titleNamed: "{name} — Навігатор",
+          helpTitle: "Посилання на маршрут",
+          helpTelegram: "Telegram робить клікабельними лише звичайні https-посилання. Ця сторінка відкриває маршрут у Яндекс Навігаторі або в іншому навігаторі на вибір.",
+          helpLatLon: "lat і lon — широта і довгота пункту призначення, обидва обов’язкові.",
+          helpName: "name — підпис місця на цій сторінці.",
+          helpFrom: "lat_from і lon_from — звідки їхати. Якщо їх немає, маршрут почнеться від поточного місця.",
+          helpApp: "app — який навігатор відкрити одразу: yandex (за замовчуванням), waze, google, 2gis, apple, here, sygic, organic, osmand, geo.",
+          helpLang: "lang — мова інтерфейсу (en, ru, de, …).",
+          helpExample: "Приклад:",
+          badCoords: "Координати вказані неповно або неправильно. Широта −90…90, довгота −180…180.",
+          route: "Маршрут",
+          from: "Звідки: {a}",
+          to: "Куди: {a}",
+          incompleteFrom: "Точку відправлення вказано не повністю, тому маршрут почнеться від поточного місця.",
+          unknownApp: "Невідомий app={app} — відкриваємо Яндекс Навігатор.",
+          autoApp: "Автоперехід: {app}. Жовта кнопка як і раніше відкриває Яндекс Навігатор.",
+          openYandex: "Відкрити в Яндекс Навігаторі",
+          openWaze: "Відкрити у Waze",
+          copy: "Скопіювати координати",
+          copied: "Скопійовано: {text}",
+          copyFail: "Не вдалося скопіювати. Виділіть координати вручну.",
+          others: "Інші навігатори",
+          chooseApp: "Вибрати застосунок · geo:",
+          dgisApp: "2ГІС · dgis://",
+          dgisAppSub: "dgis://2gis.ru/routeSearch · якщо https не відкрив застосунок",
+          hintYandex: "Якщо Навігатор не відкрився сам, натисніть жовту кнопку.",
+          hintApp: "Посилання з app={app} одразу відкриває обраний навігатор. Жовта кнопка завжди веде в Яндекс Навігатор."
+        },
+        de: {
+          title: "Navigator",
+          titleNamed: "{name} — Navigator",
+          helpTitle: "Routenlink",
+          helpTelegram: "Telegram macht nur https-Links klickbar. Diese Seite öffnet eine Route in Yandex Navigator oder einer anderen App.",
+          helpLatLon: "lat und lon — Zielbreite und -länge (erforderlich).",
+          helpName: "name — Ortsbezeichnung auf dieser Seite.",
+          helpFrom: "lat_from und lon_from — Startpunkt. Fehlen sie, startet die Route am aktuellen Standort.",
+          helpApp: "app — zuerst zu öffnende App: yandex (Standard), waze, google, 2gis, apple, here, sygic, organic, osmand, geo.",
+          helpLang: "lang — UI-Sprache (en, ru, de, …).",
+          helpExample: "Beispiel:",
+          badCoords: "Koordinaten unvollständig oder ungültig. Breite −90…90, Länge −180…180.",
+          route: "Route",
+          from: "Von: {a}",
+          to: "Nach: {a}",
+          incompleteFrom: "Startpunkt unvollständig — Route startet am aktuellen Standort.",
+          unknownApp: "Unbekanntes app={app} — öffne Yandex Navigator.",
+          autoApp: "Auto-Öffnen: {app}. Der gelbe Button öffnet weiterhin Yandex Navigator.",
+          openYandex: "In Yandex Navigator öffnen",
+          openWaze: "In Waze öffnen",
+          copy: "Koordinaten kopieren",
+          copied: "Kopiert: {text}",
+          copyFail: "Kopieren fehlgeschlagen. Koordinaten manuell markieren.",
+          others: "Andere Navigatoren",
+          chooseApp: "App wählen · geo:",
+          dgisApp: "2GIS · dgis://",
+          dgisAppSub: "dgis://2gis.ru/routeSearch · falls https die App nicht öffnete",
+          hintYandex: "Wenn Navigator nicht selbst öffnete, gelben Button tippen.",
+          hintApp: "Dieser Link nutzt app={app}. Der gelbe Button öffnet immer Yandex Navigator."
+        },
+        fr: {
+          title: "Navigateur",
+          titleNamed: "{name} — Navigateur",
+          helpTitle: "Lien d’itinéraire",
+          helpTelegram: "Telegram ne rend cliquables que les liens https. Cette page ouvre un itinéraire dans Yandex Navigator ou une autre appli.",
+          helpLatLon: "lat et lon — latitude et longitude de destination (obligatoires).",
+          helpName: "name — libellé du lieu sur cette page.",
+          helpFrom: "lat_from et lon_from — point de départ. Sinon, départ depuis la position actuelle.",
+          helpApp: "app — navigateur à ouvrir d’abord : yandex (défaut), waze, google, 2gis, apple, here, sygic, organic, osmand, geo.",
+          helpLang: "lang — langue de l’interface (en, ru, de, …).",
+          helpExample: "Exemple :",
+          badCoords: "Coordonnées incomplètes ou invalides. Latitude −90…90, longitude −180…180.",
+          route: "Itinéraire",
+          from: "De : {a}",
+          to: "Vers : {a}",
+          incompleteFrom: "Point de départ incomplet — départ depuis la position actuelle.",
+          unknownApp: "app={app} inconnu — ouverture de Yandex Navigator.",
+          autoApp: "Ouverture auto : {app}. Le bouton jaune ouvre toujours Yandex Navigator.",
+          openYandex: "Ouvrir dans Yandex Navigator",
+          openWaze: "Ouvrir dans Waze",
+          copy: "Copier les coordonnées",
+          copied: "Copié : {text}",
+          copyFail: "Échec de la copie. Sélectionnez les coordonnées manuellement.",
+          others: "Autres navigateurs",
+          chooseApp: "Choisir une appli · geo:",
+          dgisApp: "2GIS · dgis://",
+          dgisAppSub: "dgis://2gis.ru/routeSearch · si https n’a pas ouvert l’appli",
+          hintYandex: "Si Navigator ne s’est pas ouvert, appuyez sur le bouton jaune.",
+          hintApp: "Ce lien utilise app={app}. Le bouton jaune ouvre toujours Yandex Navigator."
+        },
+        es: {
+          title: "Navegador",
+          titleNamed: "{name} — Navegador",
+          helpTitle: "Enlace de ruta",
+          helpTelegram: "Telegram solo hace clicables los enlaces https. Esta página abre una ruta en Yandex Navigator u otra app.",
+          helpLatLon: "lat y lon — latitud y longitud de destino (obligatorios).",
+          helpName: "name — etiqueta del lugar en esta página.",
+          helpFrom: "lat_from y lon_from — punto de inicio. Si faltan, la ruta empieza en tu ubicación.",
+          helpApp: "app — navegador a abrir primero: yandex (predeterminado), waze, google, 2gis, apple, here, sygic, organic, osmand, geo.",
+          helpLang: "lang — idioma de la interfaz (en, ru, de, …).",
+          helpExample: "Ejemplo:",
+          badCoords: "Coordenadas incompletas o no válidas. Latitud −90…90, longitud −180…180.",
+          route: "Ruta",
+          from: "Desde: {a}",
+          to: "Hasta: {a}",
+          incompleteFrom: "Inicio incompleto: la ruta empezará en tu ubicación actual.",
+          unknownApp: "app={app} desconocido — abriendo Yandex Navigator.",
+          autoApp: "Apertura automática: {app}. El botón amarillo sigue abriendo Yandex Navigator.",
+          openYandex: "Abrir en Yandex Navigator",
+          openWaze: "Abrir en Waze",
+          copy: "Copiar coordenadas",
+          copied: "Copiado: {text}",
+          copyFail: "No se pudo copiar. Selecciona las coordenadas a mano.",
+          others: "Otros navegadores",
+          chooseApp: "Elegir app · geo:",
+          dgisApp: "2GIS · dgis://",
+          dgisAppSub: "dgis://2gis.ru/routeSearch · si https no abrió la app",
+          hintYandex: "Si Navigator no se abrió solo, pulsa el botón amarillo.",
+          hintApp: "Este enlace usa app={app}. El botón amarillo siempre abre Yandex Navigator."
+        },
+        it: {
+          title: "Navigatore",
+          titleNamed: "{name} — Navigatore",
+          helpTitle: "Link itinerario",
+          helpTelegram: "Telegram rende cliccabili solo i link https. Questa pagina apre un percorso in Yandex Navigator o in un’altra app.",
+          helpLatLon: "lat e lon — latitudine e longitudine di destinazione (obbligatorie).",
+          helpName: "name — etichetta del luogo in questa pagina.",
+          helpFrom: "lat_from e lon_from — punto di partenza. Se mancano, il percorso parte dalla posizione attuale.",
+          helpApp: "app — navigatore da aprire prima: yandex (predefinito), waze, google, 2gis, apple, here, sygic, organic, osmand, geo.",
+          helpLang: "lang — lingua interfaccia (en, ru, de, …).",
+          helpExample: "Esempio:",
+          badCoords: "Coordinate incomplete o non valide. Latitudine −90…90, longitudine −180…180.",
+          route: "Percorso",
+          from: "Da: {a}",
+          to: "A: {a}",
+          incompleteFrom: "Partenza incompleta: il percorso partirà dalla posizione attuale.",
+          unknownApp: "app={app} sconosciuto — apro Yandex Navigator.",
+          autoApp: "Apertura automatica: {app}. Il pulsante giallo apre comunque Yandex Navigator.",
+          openYandex: "Apri in Yandex Navigator",
+          openWaze: "Apri in Waze",
+          copy: "Copia coordinate",
+          copied: "Copiato: {text}",
+          copyFail: "Copia non riuscita. Seleziona le coordinate manualmente.",
+          others: "Altri navigatori",
+          chooseApp: "Scegli app · geo:",
+          dgisApp: "2GIS · dgis://",
+          dgisAppSub: "dgis://2gis.ru/routeSearch · se https non ha aperto l’app",
+          hintYandex: "Se Navigator non si è aperto da solo, tocca il pulsante giallo.",
+          hintApp: "Questo link usa app={app}. Il pulsante giallo apre sempre Yandex Navigator."
+        },
+        pl: {
+          title: "Nawigator",
+          titleNamed: "{name} — Nawigator",
+          helpTitle: "Link do trasy",
+          helpTelegram: "Telegram klika tylko zwykłe linki https. Ta strona otwiera trasę w Yandex Navigator lub innej aplikacji.",
+          helpLatLon: "lat i lon — szerokość i długość celu (wymagane).",
+          helpName: "name — etykieta miejsca na tej stronie.",
+          helpFrom: "lat_from i lon_from — punkt startu. Bez nich trasa zaczyna się od bieżącej lokalizacji.",
+          helpApp: "app — nawigator do otwarcia najpierw: yandex (domyślnie), waze, google, 2gis, apple, here, sygic, organic, osmand, geo.",
+          helpLang: "lang — język interfejsu (en, ru, de, …).",
+          helpExample: "Przykład:",
+          badCoords: "Współrzędne niekompletne lub nieprawidłowe. Szerokość −90…90, długość −180…180.",
+          route: "Trasa",
+          from: "Skąd: {a}",
+          to: "Dokąd: {a}",
+          incompleteFrom: "Start niekompletny — trasa zacznie się od bieżącej lokalizacji.",
+          unknownApp: "Nieznane app={app} — otwieram Yandex Navigator.",
+          autoApp: "Auto-otwarcie: {app}. Żółty przycisk nadal otwiera Yandex Navigator.",
+          openYandex: "Otwórz w Yandex Navigator",
+          openWaze: "Otwórz w Waze",
+          copy: "Kopiuj współrzędne",
+          copied: "Skopiowano: {text}",
+          copyFail: "Nie udało się skopiować. Zaznacz współrzędne ręcznie.",
+          others: "Inne nawigatory",
+          chooseApp: "Wybierz aplikację · geo:",
+          dgisApp: "2GIS · dgis://",
+          dgisAppSub: "dgis://2gis.ru/routeSearch · jeśli https nie otworzyło aplikacji",
+          hintYandex: "Jeśli Navigator nie otworzył się sam, naciśnij żółty przycisk.",
+          hintApp: "Ten link używa app={app}. Żółty przycisk zawsze otwiera Yandex Navigator."
+        },
+        lt: {
+          title: "Navigatorius",
+          titleNamed: "{name} — Navigatorius",
+          helpTitle: "Maršruto nuoroda",
+          helpTelegram: "Telegram spustelėjamas tik https nuorodas. Šis puslapis atidaro maršrutą Yandex Navigator arba kitoje programoje.",
+          helpLatLon: "lat ir lon — tikslo platuma ir ilguma (privalomi).",
+          helpName: "name — vietos pavadinimas šiame puslapyje.",
+          helpFrom: "lat_from ir lon_from — pradžios taškas. Jei nėra — nuo dabartinės vietos.",
+          helpApp: "app — kurią programą atidaryti pirmiausia: yandex (numatytoji), waze, google, 2gis, apple, here, sygic, organic, osmand, geo.",
+          helpLang: "lang — sąsajos kalba (en, ru, de, …).",
+          helpExample: "Pavyzdys:",
+          badCoords: "Koordinatės nepilnos arba neteisingos. Platuma −90…90, ilguma −180…180.",
+          route: "Maršrutas",
+          from: "Iš: {a}",
+          to: "Į: {a}",
+          incompleteFrom: "Pradžia nepilna — maršrutas prasidės nuo dabartinės vietos.",
+          unknownApp: "Nežinomas app={app} — atidarome Yandex Navigator.",
+          autoApp: "Automatinis atidarymas: {app}. Geltonas mygtukas vis tiek atidaro Yandex Navigator.",
+          openYandex: "Atidaryti Yandex Navigator",
+          openWaze: "Atidaryti Waze",
+          copy: "Kopijuoti koordinates",
+          copied: "Nukopijuota: {text}",
+          copyFail: "Nepavyko nukopijuoti. Pažymėkite koordinates rankiniu būdu.",
+          others: "Kiti navigatoriai",
+          chooseApp: "Pasirinkti programą · geo:",
+          dgisApp: "2GIS · dgis://",
+          dgisAppSub: "dgis://2gis.ru/routeSearch · jei https neatidarė programos",
+          hintYandex: "Jei Navigatorius neatidarė pats, bakstelėkite geltoną mygtuką.",
+          hintApp: "Ši nuoroda naudoja app={app}. Geltonas mygtukas visada atidaro Yandex Navigator."
+        },
+        lv: {
+          title: "Navigators",
+          titleNamed: "{name} — Navigators",
+          helpTitle: "Maršruta saite",
+          helpTelegram: "Telegram padara klikšķināmas tikai https saites. Šī lapa atver maršrutu Yandex Navigator vai citā lietotnē.",
+          helpLatLon: "lat un lon — galamērķa platums un garums (obligāti).",
+          helpName: "name — vietas nosaukums šajā lapā.",
+          helpFrom: "lat_from un lon_from — sākumpunkts. Ja nav — no pašreizējās atrašanās vietas.",
+          helpApp: "app — kuru navigatoru atvērt pirmajam: yandex (noklusējums), waze, google, 2gis, apple, here, sygic, organic, osmand, geo.",
+          helpLang: "lang — saskarnes valoda (en, ru, de, …).",
+          helpExample: "Piemērs:",
+          badCoords: "Koordinātas nepilnīgas vai nederīgas. Platums −90…90, garums −180…180.",
+          route: "Maršruts",
+          from: "No: {a}",
+          to: "Uz: {a}",
+          incompleteFrom: "Sākums nepilnīgs — maršruts sāksies no pašreizējās atrašanās vietas.",
+          unknownApp: "Nezināms app={app} — atveram Yandex Navigator.",
+          autoApp: "Automātiska atvēršana: {app}. Dzeltenā poga joprojām atver Yandex Navigator.",
+          openYandex: "Atvērt Yandex Navigator",
+          openWaze: "Atvērt Waze",
+          copy: "Kopēt koordinātas",
+          copied: "Nokopēts: {text}",
+          copyFail: "Neizdevās nokopēt. Atlasiet koordinātas manuāli.",
+          others: "Citi navigatori",
+          chooseApp: "Izvēlēties lietotni · geo:",
+          dgisApp: "2GIS · dgis://",
+          dgisAppSub: "dgis://2gis.ru/routeSearch · ja https neatvēra lietotni",
+          hintYandex: "Ja Navigators neatvērās pats, pieskarieties dzeltenajai pogai.",
+          hintApp: "Šī saite izmanto app={app}. Dzeltenā poga vienmēr atver Yandex Navigator."
+        },
+        et: {
+          title: "Navigator",
+          titleNamed: "{name} — Navigator",
+          helpTitle: "Marsruudilink",
+          helpTelegram: "Telegram teeb klikitavaks ainult https-lingid. See leht avab marsruudi Yandex Navigatoris või teises rakenduses.",
+          helpLatLon: "lat ja lon — sihtkoha laius- ja pikkuskraad (nõutavad).",
+          helpName: "name — koha silt sellel lehel.",
+          helpFrom: "lat_from ja lon_from — alguspunkt. Kui puuduvad, algab marsruut praegusest asukohast.",
+          helpApp: "app — milline navigator avada esimesena: yandex (vaikimisi), waze, google, 2gis, apple, here, sygic, organic, osmand, geo.",
+          helpLang: "lang — liidese keel (en, ru, de, …).",
+          helpExample: "Näide:",
+          badCoords: "Koordinaadid on puudulikud või vigased. Laiuskraad −90…90, pikkuskraad −180…180.",
+          route: "Marsruut",
+          from: "Kust: {a}",
+          to: "Kuhu: {a}",
+          incompleteFrom: "Algus on puudulik — marsruut algab praegusest asukohast.",
+          unknownApp: "Tundmatu app={app} — avame Yandex Navigatori.",
+          autoApp: "Automaatne avamine: {app}. Kollane nupp avab endiselt Yandex Navigatori.",
+          openYandex: "Ava Yandex Navigatoris",
+          openWaze: "Ava Wazes",
+          copy: "Kopeeri koordinaadid",
+          copied: "Kopeeritud: {text}",
+          copyFail: "Kopeerimine ebaõnnestus. Vali koordinaadid käsitsi.",
+          others: "Teised navigatorid",
+          chooseApp: "Vali rakendus · geo:",
+          dgisApp: "2GIS · dgis://",
+          dgisAppSub: "dgis://2gis.ru/routeSearch · kui https rakendust ei avanud",
+          hintYandex: "Kui Navigator ei avanenud ise, vajuta kollast nuppu.",
+          hintApp: "See link kasutab app={app}. Kollane nupp avab alati Yandex Navigatori."
+        },
+        pt: {
+          title: "Navegador",
+          titleNamed: "{name} — Navegador",
+          helpTitle: "Link de rota",
+          helpTelegram: "O Telegram só torna clicáveis links https. Esta página abre uma rota no Yandex Navigator ou noutro app.",
+          helpLatLon: "lat e lon — latitude e longitude do destino (obrigatórios).",
+          helpName: "name — rótulo do local nesta página.",
+          helpFrom: "lat_from e lon_from — ponto de partida. Se faltarem, a rota começa na localização atual.",
+          helpApp: "app — navegador a abrir primeiro: yandex (predefinição), waze, google, 2gis, apple, here, sygic, organic, osmand, geo.",
+          helpLang: "lang — idioma da interface (en, ru, de, …).",
+          helpExample: "Exemplo:",
+          badCoords: "Coordenadas incompletas ou inválidas. Latitude −90…90, longitude −180…180.",
+          route: "Rota",
+          from: "De: {a}",
+          to: "Para: {a}",
+          incompleteFrom: "Partida incompleta — a rota começa na localização atual.",
+          unknownApp: "app={app} desconhecido — a abrir Yandex Navigator.",
+          autoApp: "Abertura automática: {app}. O botão amarelo continua a abrir o Yandex Navigator.",
+          openYandex: "Abrir no Yandex Navigator",
+          openWaze: "Abrir no Waze",
+          copy: "Copiar coordenadas",
+          copied: "Copiado: {text}",
+          copyFail: "Não foi possível copiar. Selecione as coordenadas manualmente.",
+          others: "Outros navegadores",
+          chooseApp: "Escolher app · geo:",
+          dgisApp: "2GIS · dgis://",
+          dgisAppSub: "dgis://2gis.ru/routeSearch · se https não abriu o app",
+          hintYandex: "Se o Navigator não abriu sozinho, toque no botão amarelo.",
+          hintApp: "Este link usa app={app}. O botão amarelo abre sempre o Yandex Navigator."
+        },
+        nl: {
+          title: "Navigator",
+          titleNamed: "{name} — Navigator",
+          helpTitle: "Routelink",
+          helpTelegram: "Telegram maakt alleen https-links klikbaar. Deze pagina opent een route in Yandex Navigator of een andere app.",
+          helpLatLon: "lat en lon — breedte- en lengtegraad van de bestemming (verplicht).",
+          helpName: "name — plaatslabel op deze pagina.",
+          helpFrom: "lat_from en lon_from — startpunt. Zonder deze begint de route vanaf je huidige locatie.",
+          helpApp: "app — navigator om eerst te openen: yandex (standaard), waze, google, 2gis, apple, here, sygic, organic, osmand, geo.",
+          helpLang: "lang — interfacetaal (en, ru, de, …).",
+          helpExample: "Voorbeeld:",
+          badCoords: "Coördinaten onvolledig of ongeldig. Breedte −90…90, lengte −180…180.",
+          route: "Route",
+          from: "Van: {a}",
+          to: "Naar: {a}",
+          incompleteFrom: "Start onvolledig — route begint vanaf je huidige locatie.",
+          unknownApp: "Onbekende app={app} — Yandex Navigator openen.",
+          autoApp: "Auto-open: {app}. De gele knop opent nog steeds Yandex Navigator.",
+          openYandex: "Openen in Yandex Navigator",
+          openWaze: "Openen in Waze",
+          copy: "Coördinaten kopiëren",
+          copied: "Gekopieerd: {text}",
+          copyFail: "Kopiëren mislukt. Selecteer de coördinaten handmatig.",
+          others: "Andere navigators",
+          chooseApp: "App kiezen · geo:",
+          dgisApp: "2GIS · dgis://",
+          dgisAppSub: "dgis://2gis.ru/routeSearch · als https de app niet opende",
+          hintYandex: "Als Navigator niet zelf opende, tik op de gele knop.",
+          hintApp: "Deze link gebruikt app={app}. De gele knop opent altijd Yandex Navigator."
+        },
+        tr: {
+          title: "Navigatör",
+          titleNamed: "{name} — Navigatör",
+          helpTitle: "Rota bağlantısı",
+          helpTelegram: "Telegram yalnızca https bağlantılarını tıklanabilir yapar. Bu sayfa rotayı Yandex Navigator veya seçtiğiniz başka bir uygulamada açar.",
+          helpLatLon: "lat ve lon — varış enlemi ve boylamı (zorunlu).",
+          helpName: "name — bu sayfadaki yer etiketi.",
+          helpFrom: "lat_from ve lon_from — başlangıç. Yoksa rota mevcut konumdan başlar.",
+          helpApp: "app — önce açılacak navigatör: yandex (varsayılan), waze, google, 2gis, apple, here, sygic, organic, osmand, geo.",
+          helpLang: "lang — arayüz dili (en, ru, de, …).",
+          helpExample: "Örnek:",
+          badCoords: "Koordinatlar eksik veya geçersiz. Enlem −90…90, boylam −180…180.",
+          route: "Rota",
+          from: "Nereden: {a}",
+          to: "Nereye: {a}",
+          incompleteFrom: "Başlangıç eksik — rota mevcut konumdan başlayacak.",
+          unknownApp: "Bilinmeyen app={app} — Yandex Navigator açılıyor.",
+          autoApp: "Otomatik açılış: {app}. Sarı düğme yine Yandex Navigator’ı açar.",
+          openYandex: "Yandex Navigator’da aç",
+          openWaze: "Waze’de aç",
+          copy: "Koordinatları kopyala",
+          copied: "Kopyalandı: {text}",
+          copyFail: "Kopyalanamadı. Koordinatları elle seçin.",
+          others: "Diğer navigatörler",
+          chooseApp: "Uygulama seç · geo:",
+          dgisApp: "2GIS · dgis://",
+          dgisAppSub: "dgis://2gis.ru/routeSearch · https uygulamayı açmadıysa",
+          hintYandex: "Navigator kendiliğinden açılmadıysa sarı düğmeye dokunun.",
+          hintApp: "Bu bağlantı app={app} kullanır. Sarı düğme her zaman Yandex Navigator’ı açar."
+        }
+      };
+
+      function normalizeLang(code) {
+        var base = String(code || "").toLowerCase().split(/[-_]/)[0];
+        if (base === "be") return "ru";
+        return I18N[base] ? base : "";
+      }
+
+      function pickLang() {
+        var override = normalizeLang(params.get("lang"));
+        if (override) return override;
+        var list = navigator.languages && navigator.languages.length
+          ? navigator.languages
+          : [navigator.language || navigator.userLanguage || "en"];
+        for (var i = 0; i < list.length; i++) {
+          var hit = normalizeLang(list[i]);
+          if (hit) return hit;
+        }
+        return "en";
+      }
+
+      var lang = pickLang();
+      var t = I18N[lang] || I18N.en;
+      document.documentElement.lang = lang;
+
+      function msg(key, vars) {
+        var text = t[key] || I18N.en[key] || key;
+        if (!vars) return text;
+        return text.replace(/\{(\w+)\}/g, function (_, name) {
+          return vars[name] != null ? String(vars[name]) : "";
+        });
+      }
 
       function isAndroid() {
         return /Android/i.test(navigator.userAgent || "");
@@ -211,18 +661,19 @@
       }
 
       function showHelp(intro) {
-        document.title = "Ссылка на навигатор";
+        document.title = msg("helpTitle");
         app.textContent = "";
-        app.appendChild(el("h1", null, "Ссылка на маршрут"));
+        app.appendChild(el("h1", null, msg("helpTitle")));
         if (intro) app.appendChild(el("p", null, intro));
-        app.appendChild(el("p", "muted", "Telegram делает кликабельными только обычные https-ссылки. Эта страница открывает маршрут в Яндекс Навигаторе или в другом навигаторе по выбору."));
+        app.appendChild(el("p", "muted", msg("helpTelegram")));
         var list = document.createElement("ul");
-        list.appendChild(el("li", null, "lat и lon — широта и долгота точки назначения, оба обязательны."));
-        list.appendChild(el("li", null, "name — подпись места на этой странице."));
-        list.appendChild(el("li", null, "lat_from и lon_from — откуда ехать. Если их нет, маршрут начнётся от текущего места."));
-        list.appendChild(el("li", null, "app — какой навигатор открыть сразу: yandex (по умолчанию), google, waze, 2gis, apple, here, sygic, organic, osmand, geo."));
+        list.appendChild(el("li", null, msg("helpLatLon")));
+        list.appendChild(el("li", null, msg("helpName")));
+        list.appendChild(el("li", null, msg("helpFrom")));
+        list.appendChild(el("li", null, msg("helpApp")));
+        list.appendChild(el("li", null, msg("helpLang")));
         app.appendChild(list);
-        app.appendChild(el("p", "muted", "Пример:"));
+        app.appendChild(el("p", "muted", msg("helpExample")));
         var link = el("a", "example", EXAMPLE);
         link.href = EXAMPLE;
         app.appendChild(link);
@@ -232,7 +683,7 @@
       var lon = coord(params.get("lon"), -180, 180);
       if (!lat || !lon) {
         var missing = params.has("lat") || params.has("lon") || params.has("lat_from") || params.has("lon_from");
-        showHelp(missing ? "Координаты указаны неполно или неверно. Широта — от −90 до 90, долгота — от −180 до 180." : "");
+        showHelp(missing ? msg("badCoords") : "");
         return;
       }
 
@@ -254,14 +705,10 @@
         + "#Intent;scheme=yandexnavi;package=" + NAVI_PACKAGE + ";end";
 
       var toPoint = lat + "," + lon;
-      var rtext = hasFrom ? (latFrom + "," + lonFrom + "~" + toPoint) : ("~" + toPoint);
-      var mapsWeb = "https://yandex.ru/maps/?rtext=" + encodeURIComponent(rtext) + "&rtt=auto";
-
       var android = isAndroid();
       var yandexTarget = android ? intent : scheme;
 
-      // Destination-only / A→B builders for other apps (official docs).
-      // 2GIS: lon,lat order. Prefer https (opens app or web).
+      // Other apps (official docs). 2GIS uses lon,lat.
       var dgisPath = hasFrom
         ? ("/routeSearch/rsType/car/from/" + lonFrom + "," + latFrom + "/to/" + lon + "," + lat)
         : ("/routeSearch/rsType/car/to/" + lon + "," + lat);
@@ -285,7 +732,6 @@
         + (name ? ("," + encodeURIComponent(name)) : "")
         + "?m=d";
 
-      // Sygic consumer universal link (legacy com.sygic.aura:// no longer builds routes).
       var sygic = "https://go.sygic.com/directions?to=" + encodeURIComponent(toPoint)
         + (hasFrom ? ("&from=" + encodeURIComponent(latFrom + "," + lonFrom)) : "");
 
@@ -305,16 +751,16 @@
       var geo = "geo:" + toPoint
         + (name ? ("(" + encodeURIComponent(name) + ")") : "");
 
+      // Waze is the second primary button — not repeated here.
       var otherApps = [
-        { id: "2gis", href: dgisWeb, title: "2ГИС · 2GIS", sub: "https://2gis.ru/routeSearch · app: 2gis" },
-        { id: "google", href: google, title: "Google Maps", sub: "maps/dir · app: google" },
-        { id: "waze", href: waze, title: "Waze", sub: "waze.com/ul · app: waze" },
-        { id: "apple", href: apple, title: "Apple Maps", sub: "maps.apple.com · app: apple" },
-        { id: "here", href: here, title: "HERE WeGo", sub: "share.here.com · app: here" },
-        { id: "sygic", href: sygic, title: "Sygic", sub: "go.sygic.com · app: sygic" },
-        { id: "organic", href: organic, title: "Organic Maps", sub: "om://v2/nav · app: organic" },
-        { id: "osmand", href: osmand, title: "OsmAnd", sub: "osmand.net/map · app: osmand" },
-        { id: "geo", href: geo, title: "Выбрать приложение · geo:", sub: "Android · app: geo" }
+        { href: dgisWeb, title: "2GIS", sub: "2gis.ru/routeSearch · app: 2gis" },
+        { href: google, title: "Google Maps", sub: "maps/dir · app: google" },
+        { href: apple, title: "Apple Maps", sub: "maps.apple.com · app: apple" },
+        { href: here, title: "HERE WeGo", sub: "share.here.com · app: here" },
+        { href: sygic, title: "Sygic", sub: "go.sygic.com · app: sygic" },
+        { href: organic, title: "Organic Maps", sub: "om://v2/nav · app: organic" },
+        { href: osmand, title: "OsmAnd", sub: "osmand.net/map · app: osmand" },
+        { href: geo, title: msg("chooseApp"), sub: "Android · app: geo" }
       ];
 
       var aliases = {
@@ -354,28 +800,28 @@
         ? (latFrom + ", " + lonFrom + " → " + lat + ", " + lon)
         : (lat + ", " + lon);
 
-      document.title = name ? (name + " — Навигатор") : "Яндекс Навигатор";
+      document.title = name ? msg("titleNamed", { name: name }) : msg("title");
       app.textContent = "";
-      app.appendChild(el("h1", null, name || "Маршрут"));
+      app.appendChild(el("h1", null, name || msg("route")));
 
       var coords = el("p", "coords");
       if (hasFrom) {
-        coords.appendChild(el("span", null, "Откуда: " + latFrom + ", " + lonFrom));
+        coords.appendChild(el("span", null, msg("from", { a: latFrom + ", " + lonFrom })));
         coords.appendChild(document.createElement("br"));
-        coords.appendChild(el("span", null, "Куда: " + lat + ", " + lon));
+        coords.appendChild(el("span", null, msg("to", { a: lat + ", " + lon })));
       } else {
         coords.textContent = lat + ", " + lon;
       }
       app.appendChild(coords);
 
       if (incompleteFrom) {
-        app.appendChild(el("p", "muted", "Точка отправления указана не целиком, поэтому маршрут начнётся от текущего места."));
+        app.appendChild(el("p", "muted", msg("incompleteFrom")));
       }
 
       if (!aliases[appParam]) {
-        app.appendChild(el("p", "muted", "Неизвестный app=" + appParam + " — открываем Яндекс Навигатор."));
+        app.appendChild(el("p", "muted", msg("unknownApp", { app: appParam })));
       } else if (selected !== "yandex") {
-        app.appendChild(el("p", "muted", "Автопереход: " + selected + ". Жёлтая кнопка по-прежнему открывает Яндекс Навигатор."));
+        app.appendChild(el("p", "muted", msg("autoApp", { app: selected })));
       }
 
       // Keep Yandex primary exactly as before: real <a>, Android intent / else scheme.
@@ -383,48 +829,39 @@
       primary.appendChild(linkButton(
         yandexTarget,
         "btn",
-        "Открыть в Яндекс Навигаторе",
-        android ? "intent:// · пакет ru.yandex.yandexnavi" : "yandexnavi://"
+        msg("openYandex"),
+        android ? "intent:// · ru.yandex.yandexnavi" : "yandexnavi://"
       ));
       app.appendChild(primary);
 
-      var yandexExtras = el("div", "actions");
-      yandexExtras.appendChild(linkButton(
-        mapsWeb,
+      var extras = el("div", "actions");
+      extras.appendChild(linkButton(
+        waze,
         "btn-alt",
-        "Маршрут в Яндекс Картах (браузер)",
-        "https://yandex.ru/maps"
+        msg("openWaze"),
+        "waze.com/ul · app: waze"
       ));
 
-      var copyBtn = el("button", "btn-copy", "Скопировать координаты");
+      var copyBtn = el("button", "btn-copy", msg("copy"));
       copyBtn.type = "button";
-      yandexExtras.appendChild(copyBtn);
+      extras.appendChild(copyBtn);
 
       var toast = el("p", "toast", "");
-      yandexExtras.appendChild(toast);
-      app.appendChild(yandexExtras);
+      extras.appendChild(toast);
+      app.appendChild(extras);
 
-      app.appendChild(el("h2", null, "Другие навигаторы · Other navigators"));
+      app.appendChild(el("h2", null, msg("others")));
       var others = el("div", "actions");
       for (var i = 0; i < otherApps.length; i++) {
-        var item = otherApps[i];
-        others.appendChild(linkButton(item.href, "btn-alt", item.title, item.sub));
+        others.appendChild(linkButton(otherApps[i].href, "btn-alt", otherApps[i].title, otherApps[i].sub));
       }
-      // Extra: direct dgis:// for those who prefer the app scheme over https.
-      others.appendChild(linkButton(
-        dgisApp,
-        "btn-alt",
-        "2ГИС · dgis://",
-        "dgis://2gis.ru/routeSearch · если https не открыл приложение"
-      ));
+      others.appendChild(linkButton(dgisApp, "btn-alt", msg("dgisApp"), msg("dgisAppSub")));
       app.appendChild(others);
 
       app.appendChild(el(
         "p",
         "hint muted",
-        selected === "yandex"
-          ? "Если Навигатор не открылся сам, нажмите жёлтую кнопку."
-          : "Ссылка с app=" + selected + " сразу открывает выбранный навигатор. Жёлтая кнопка всегда ведёт в Яндекс Навигатор."
+        selected === "yandex" ? msg("hintYandex") : msg("hintApp", { app: selected })
       ));
 
       function setToast(text) {
@@ -432,8 +869,8 @@
       }
 
       function copyCoords() {
-        function ok() { setToast("Скопировано: " + copyText); }
-        function fail() { setToast("Не удалось скопировать. Выделите координаты вручную."); }
+        function ok() { setToast(msg("copied", { text: copyText })); }
+        function fail() { setToast(msg("copyFail")); }
 
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(copyText).then(ok, function () {
