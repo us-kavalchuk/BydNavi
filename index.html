@@ -170,6 +170,7 @@
       <p class="muted">Enable JavaScript and open the link again.</p>
     </noscript>
   </main>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
     (function () {
       var NAVI_PACKAGE = "ru.yandex.yandexnavi";
@@ -207,7 +208,8 @@
           dgisApp: "2GIS · dgis://",
           dgisAppSub: "dgis://2gis.ru/routeSearch · if https did not open the app",
           hintYandex: "If Navigator did not open by itself, tap the yellow button.",
-          hintApp: "This link uses app={app}. The yellow button always opens Yandex Navigator."
+          hintApp: "This link uses app={app}. The yellow button always opens Yandex Navigator.",
+          miniHint: "Opened as a Telegram Mini App. Tap a button — Telegram cannot auto-open other apps from this window. That opens the app or Chrome, where the deep link works."
         },
         ru: {
           title: "Яндекс Навигатор",
@@ -237,7 +239,8 @@
           dgisApp: "2ГИС · dgis://",
           dgisAppSub: "dgis://2gis.ru/routeSearch · если https не открыл приложение",
           hintYandex: "Если Навигатор не открылся сам, нажмите жёлтую кнопку.",
-          hintApp: "Ссылка с app={app} сразу открывает выбранный навигатор. Жёлтая кнопка всегда ведёт в Яндекс Навигатор."
+          hintApp: "Ссылка с app={app} сразу открывает выбранный навигатор. Жёлтая кнопка всегда ведёт в Яндекс Навигатор.",
+          miniHint: "Открыто как Mini App в Telegram. Нажмите кнопку — из этого окна Telegram не умеет сам запускать другие приложения. Откроется приложение или Chrome, где сработает глубокая ссылка."
         },
         uk: {
           title: "Яндекс Навігатор",
@@ -655,6 +658,23 @@
         return webUrl;
       }
 
+      // Real Mini App session (web_app button). Empty initData means a normal browser tab.
+      function getTelegramWebApp() {
+        return window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+      }
+
+      function isTelegramMiniApp() {
+        var tg = getTelegramWebApp();
+        return !!(tg && tg.initData && String(tg.initData).length > 0);
+      }
+
+      function externalPageUrl(appId) {
+        var u = new URL(window.location.href.split("#")[0]);
+        if (appId) u.searchParams.set("app", appId);
+        else u.searchParams.delete("app");
+        return u.toString();
+      }
+
       function coord(raw, min, max) {
         if (raw == null) return null;
         var value = String(raw).trim().replace(",", ".");
@@ -889,23 +909,72 @@
         app.appendChild(el("p", "muted", msg("autoApp", { app: selected })));
       }
 
+      var miniApp = isTelegramMiniApp();
+      var tg = getTelegramWebApp();
+
+      if (miniApp && tg) {
+        try { tg.ready(); } catch (errReady) {}
+        try { tg.expand(); } catch (errExpand) {}
+      }
+
+      // Mini App WebView: openLink() only allows http(s). Custom schemes / intent://
+      // often do nothing. On tap: try location.href to intent/scheme, then openLink
+      // to this page in Chrome (normal auto-redirect), then close the Mini App.
+      function launchFromMiniApp(targetUrl, appId, event) {
+        if (event) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        if (!miniApp || !tg) return false;
+        try {
+          window.location.href = targetUrl;
+        } catch (errLoc) {}
+        window.setTimeout(function () {
+          try {
+            var open = /^https?:\/\//i.test(targetUrl)
+              ? targetUrl
+              : externalPageUrl(appId || "yandex");
+            var opts = {};
+            try {
+              if (tg.isVersionAtLeast && tg.isVersionAtLeast("7.6")) {
+                opts.try_browser = "chrome";
+              }
+            } catch (errVer) {}
+            tg.openLink(open, opts);
+          } catch (errOpen) {}
+          try { tg.close(); } catch (errClose) {}
+        }, 280);
+        return true;
+      }
+
+      function bindMini(anchor, targetUrl, appId) {
+        if (!miniApp || !anchor) return;
+        anchor.addEventListener("click", function (event) {
+          launchFromMiniApp(targetUrl, appId, event);
+        });
+      }
+
       // Keep Yandex primary exactly as before: real <a>, Android intent / else scheme.
       var primary = el("div", "actions");
-      primary.appendChild(linkButton(
+      var yandexBtn = linkButton(
         yandexTarget,
         "btn",
         msg("openYandex"),
         android ? "intent:// · ru.yandex.yandexnavi" : "yandexnavi://"
-      ));
+      );
+      primary.appendChild(yandexBtn);
       app.appendChild(primary);
+      bindMini(yandexBtn, yandexTarget, "yandex");
 
       var extras = el("div", "actions");
-      extras.appendChild(linkButton(
+      var wazeBtn = linkButton(
         waze,
         "btn-alt",
         msg("openWaze"),
         android ? "intent:// · com.waze" : (ios ? "waze:// · app: waze" : "waze.com/ul · app: waze")
-      ));
+      );
+      extras.appendChild(wazeBtn);
+      bindMini(wazeBtn, waze, "waze");
 
       var copyBtn = el("button", "btn-copy", msg("copy"));
       copyBtn.type = "button";
@@ -917,17 +986,35 @@
 
       app.appendChild(el("h2", null, msg("others")));
       var others = el("div", "actions");
+      var otherIds = ["2gis", "google", "apple", "here", "sygic", "organic", "osmand", "geo"];
       for (var i = 0; i < otherApps.length; i++) {
-        others.appendChild(linkButton(otherApps[i].href, "btn-alt", otherApps[i].title, otherApps[i].sub));
+        var item = otherApps[i];
+        var otherBtn = linkButton(item.href, "btn-alt", item.title, item.sub);
+        others.appendChild(otherBtn);
+        bindMini(otherBtn, item.href, otherIds[i] || "yandex");
       }
-      others.appendChild(linkButton(dgisScheme, "btn-alt", msg("dgisApp"), msg("dgisAppSub")));
+      var dgisBtn = linkButton(dgisScheme, "btn-alt", msg("dgisApp"), msg("dgisAppSub"));
+      others.appendChild(dgisBtn);
+      bindMini(dgisBtn, dgisScheme, "2gis");
       app.appendChild(others);
 
       app.appendChild(el(
         "p",
         "hint muted",
-        selected === "yandex" ? msg("hintYandex") : msg("hintApp", { app: selected })
+        miniApp
+          ? msg("miniHint")
+          : (selected === "yandex" ? msg("hintYandex") : msg("hintApp", { app: selected }))
       ));
+
+      if (miniApp && tg && tg.MainButton) {
+        try {
+          tg.MainButton.setText(msg("openYandex"));
+          tg.MainButton.onClick(function () {
+            launchFromMiniApp(yandexTarget, "yandex");
+          });
+          tg.MainButton.show();
+        } catch (errMain) {}
+      }
 
       function setToast(text) {
         toast.textContent = text;
@@ -966,9 +1053,13 @@
 
       copyBtn.addEventListener("click", copyCoords);
 
-      try {
-        window.location.href = autoTarget;
-      } catch (err) {}
+      // Normal browser / Telegram url button / head unit: auto-redirect.
+      // Mini App: keep the UI (auto intent often fails silently in that WebView).
+      if (!miniApp) {
+        try {
+          window.location.href = autoTarget;
+        } catch (err) {}
+      }
     })();
   </script>
 </body>
