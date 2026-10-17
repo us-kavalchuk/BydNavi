@@ -36,18 +36,6 @@ intent://build_route_on_map?lat_to=53.86&lon_to=27.45#Intent;scheme=yandexnavi;p
 - **iOS Waze**: `waze://?ll=LAT,LON&navigate=yes` (иначе https).
 - То же для других приложений с известным пакетом: Google Maps (`google.navigation` / `com.google.android.apps.maps`), 2GIS (`dgis` / `ru.dublgis.dgismobile`), HERE (`here.directions` / `com.here.app.maps`), Sygic (`com.sygic.aura`), Organic Maps (`om` / `app.organicmaps`), OsmAnd (`https` + `net.osmand`).
 
-### Telegram Mini App (`web_app` кнопка)
-
-Страница подключает `https://telegram.org/js/telegram-web-app.js` и, если есть `Telegram.WebApp.initData` (настоящий Mini App):
-
-1. `ready()` + `expand()`;
-2. **без** автоперехода на `intent://` (в WebView Mini App он часто ничего не делает);
-3. по нажатию кнопки / Main Button: сначала `location.href` на intent/схему, затем `Telegram.WebApp.openLink(https…, { try_browser: 'chrome' })` — Telegram разрешает в `openLink` только http(s), поэтому для intent открывается **эта же страница** во внешнем Chrome, где срабатывает обычный автопереход, и Mini App закрывается (`close()`).
-
-Обычные url-кнопки, браузер и ГУ не меняются (нет `initData` → прежнее поведение).
-
-Ограничение: из Mini App нельзя надёжно вызвать произвольный `intent://` через `openLink`; нужен тап и/или внешний браузер.
-
 ## Язык интерфейса
 
 UI выбирается по `navigator.languages` (без внешних библиотек): `ru`, `uk`, `en`, `de`, `fr`, `es`, `it`, `pl`, `lt`, `lv`, `et`, `pt`, `nl`, `tr`. Для `be` используется русский. Иначе — английский.
